@@ -109,15 +109,20 @@ el.addEventListener('pointerdown', () => {
   })
 });
 
-let timeout = undefined;
-const keydownTrottle = throttle(event => {
-  if (event.key !== 'Enter' && event.key !== " ") return;
-  startListening((mouseUpController) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      stopListening(mouseUpController, {current: 15});
-    }, animDurationMs)
-  })
-}, 500);
+let isInKeyEvent = false;
 
-el.addEventListener('keydown', keydownTrottle)
+el.addEventListener('keydown', event => {
+  if (isInKeyEvent) return;
+  if (event.key !== 'Enter' && event.key !== " ") return;
+  isInKeyEvent = true;
+  startListening((mouseDownController, mouseDownCount) => {
+    document.addEventListener(
+      'keyup',
+      () => {
+        stopListening(mouseDownController, mouseDownCount);
+        isInKeyEvent = false;
+      },
+      { once: true }
+    );
+  });
+})
