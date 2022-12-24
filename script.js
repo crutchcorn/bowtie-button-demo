@@ -32,7 +32,8 @@ function prefixNumberWithZeros(number, amountOfNumbers) {
 
 const el = document.querySelector('.bowtie-button');
 const bowties = el.querySelector('.bowties');
-el.addEventListener('mousedown', () => {
+
+el.addEventListener('pointerdown', () => {
   const mouseDownController = new AbortController();
   const mouseDownSignal = mouseDownController.signal;
   const mouseDownCurrent = performance.now();
@@ -56,7 +57,7 @@ el.addEventListener('mousedown', () => {
   });
 
   document.addEventListener(
-    'mouseup',
+    'pointerup',
     () => {
       mouseDownController.abort();
       const mouseUpController = new AbortController();

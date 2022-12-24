@@ -1,5 +1,6 @@
 .bowtie-button {
-  all: unset;
+  border: none;
+  background: none;
   position: relative;
   padding: 20px;
   overflow: hidden;
