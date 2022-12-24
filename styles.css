@@ -48,7 +48,7 @@
   transform-origin: center;
 }
 
-.bowtie-button:hover .bowties {
+.bowtie-button:hover .bowties, .bowtie-button:active .bowties {
   opacity: 1;
 }
 
