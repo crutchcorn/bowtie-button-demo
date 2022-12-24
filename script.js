@@ -52,7 +52,7 @@ el.addEventListener('mousedown', () => {
       mouseDownCount,
       2
     );
-    bowties.style.backgroundImage = `url("assets/frame${frameNum}.svg")`;
+    bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
   });
 
   document.addEventListener(
@@ -79,7 +79,7 @@ el.addEventListener('mousedown', () => {
           2
         );
     
-        bowties.style.backgroundImage = `url("assets/frame${frameNum}.svg")`;
+        bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
       });
     },
     { once: true }
