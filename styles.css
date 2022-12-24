@@ -54,4 +54,5 @@
 
 .bowtie-button:active .bowties {
   transform: scale(4);
+  opacity: 0.24;
 }
