@@ -41,7 +41,7 @@
   top: 0;
   left: 0;
   background-repeat: repeat;
-  background-size: 4px;
+  background-size: 8px;
   background-image: url('/bowtie-button-demo/assets/frame0.svg');
   opacity: 0;
   transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
@@ -54,6 +54,6 @@
 }
 
 .bowtie-button:active .bowties {
-  transform: scale(8);
+  transform: scale(4);
   opacity: 0.24;
 }

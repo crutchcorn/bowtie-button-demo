@@ -15,32 +15,6 @@ function throttle(func, timeFrame) {
   };
 }
 
-/**
- * @param {number | string} number
- * @param {number} amountOfNumbers
- * @returns {string}
- */
-function prefixNumberWithZeros(number, amountOfNumbers) {
-  if (typeof number === 'string') number = Number(number);
-  if (
-    Number.isNaN(number) ||
-    !Number.isFinite(number) ||
-    !Number.isSafeInteger(number)
-  ) {
-    return NaN;
-  }
-
-  let strNum = number.toString();
-  if (strNum.length > amountOfNumbers) {
-    return strNum;
-  }
-  const numOfZerosToPrefix = amountOfNumbers - strNum.length;
-  for (let i = 0; i < numOfZerosToPrefix; i++) {
-    strNum = '0' + strNum;
-  }
-  return strNum;
-}
-
 const animDurationMs = 300;
 // Not including 0
 const frames = 9;
@@ -58,10 +32,7 @@ function startListening(cb) {
       mouseDownController.abort();
       return;
     }
-    const frameNum = prefixNumberWithZeros(
-      mouseDownCount.current,
-      1
-    );
+    const frameNum = mouseDownCount.current;
     bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
   });
 
@@ -85,10 +56,7 @@ function stopListening(mouseDownController, mouseDownCount) {
     if (count < 0) {
       count = 0;
     }
-    const frameNum = prefixNumberWithZeros(
-      frames - count,
-      1
-    );
+    const frameNum = frames - count;
 
     bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
   });
