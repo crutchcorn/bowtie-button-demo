@@ -43,7 +43,7 @@ function prefixNumberWithZeros(number, amountOfNumbers) {
 
 const animDurationMs = 300;
 // Not including 0
-const frames = 15;
+const frames = 9;
 
 function startListening(cb) {
   const mouseDownController = new AbortController();
@@ -60,7 +60,7 @@ function startListening(cb) {
     }
     const frameNum = prefixNumberWithZeros(
       mouseDownCount.current,
-      2
+      1
     );
     bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
   });
@@ -87,7 +87,7 @@ function stopListening(mouseDownController, mouseDownCount) {
     }
     const frameNum = prefixNumberWithZeros(
       frames - count,
-      2
+      1
     );
 
     bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;

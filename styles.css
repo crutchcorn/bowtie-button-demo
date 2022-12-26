@@ -41,11 +41,12 @@
   top: 0;
   left: 0;
   background-repeat: repeat;
-  background-size: 8px;
-  background-image: url('/bowtie-button-demo/assets/frame00.svg');
+  background-size: 4px;
+  background-image: url('/bowtie-button-demo/assets/frame0.svg');
   opacity: 0;
   transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
   transform-origin: center;
+  background-position: center;
 }
 
 .bowtie-button:hover .bowties, .bowtie-button:active .bowties {
@@ -53,6 +54,6 @@
 }
 
 .bowtie-button:active .bowties {
-  transform: scale(4);
+  transform: scale(8);
   opacity: 0.24;
 }
