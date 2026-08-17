@@ -1,9 +1,9 @@
 {
   "scripts": {
-    "start": "ws --rewrite \"/bowtie-button-demo/(.*) -> /$1\""
+    "start": "serve"
   },
   "devDependencies": {
-    "local-web-server": "^5.2.1"
+    "serve": "^14.2.6"
   },
   "license": "MIT"
 }

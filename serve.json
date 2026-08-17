@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/bowtie-button-demo/:a", "destination": "/:a" },
+    { "source": "/bowtie-button-demo/:a/:b", "destination": "/:a/:b" },
+    { "source": "/bowtie-button-demo/:a/:b/:c", "destination": "/:a/:b/:c" }
+  ]
+}
