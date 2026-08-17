@@ -33,22 +33,31 @@
   background: #006590;
 }
 
-.bowties {
+.bowtie-visibility {
   position: absolute;
   height: 100%;
   width: 100%;
   z-index: -1;
   top: 0;
   left: 0;
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+
+.bowtie-button:hover .bowtie-visibility,
+.bowtie-button:active .bowtie-visibility {
+  opacity: 1;
+}
+
+.bowties {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
   background-repeat: repeat;
   background-size: 8px;
   background-image: url('/bowtie-button-demo/assets/frame0.svg');
-  opacity: 0;
-  transition: opacity 300ms ease-in-out;
   transform-origin: center;
   background-position: center;
-}
-
-.bowtie-button:hover .bowties, .bowtie-button:active .bowties {
-  opacity: 1;
 }

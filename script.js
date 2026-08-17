@@ -62,8 +62,10 @@ function finishAtTarget() {
   renderedFrame = 0;
 }
 
-function tick(timestamp) {
-  advance(timestamp);
+function tick() {
+  // Event handlers also use performance.now(); keeping every sample on that clock prevents a RAF
+  // timestamp from moving previousTimestamp backwards around a rapid reversal.
+  advance(performance.now());
   render();
 
   if (progress === targetProgress) {

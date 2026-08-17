@@ -24,8 +24,10 @@ Pointer IDs and activation keys are tracked separately, so one input source cann
 Pointer cancellation, lost capture, window blur, and a hidden document all release their active
 inputs instead of leaving the button stuck down.
 
-Hover is still CSS: `.bowties` fades `opacity` 0 → 1, and the paused effect is `cancel()`ed only once
-it has unwound back to the start so that rule takes over again.
+Hover is still CSS: an outer `.bowtie-visibility` layer fades `opacity` 0 → 1, while the inner
+`.bowties` layer owns the press scale, fade, and SVG frame. Keeping hover and press opacity on
+separate elements prevents an outside release from exposing a stale CSS transition. The paused press
+effect is `cancel()`ed only once it has unwound back to the start.
 
 The SVGs are a tile: each is a 48×48 viewBox drawn at `background-size: 8px`, repeated across the
 layer. Everything below is expressed in the SVG's 48-unit user space, where the motif is centred on
