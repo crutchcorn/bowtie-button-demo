@@ -5,7 +5,7 @@ dots; on press the dots morph into rotating bowties while the whole layer scales
 
 ## How the animation is wired together
 
-The press animation is driven entirely from `script.js`, by one progress value and one
+The press animation is driven entirely from `bowtie-button.js`, by one progress value and one
 `requestAnimationFrame` loop:
 
 - A paused Web Animations API effect interpolates `transform` from `scale(1, 1)` to `scale(4, 2)`
@@ -114,6 +114,13 @@ is clearly emerged by frame 4 — so its lobes are always attached to the dot. F
 
 Because the bow is smaller through the middle frames, this also buys back the vertical headroom that
 `F` was eating: the near-vertical rotations around frames 4–6 no longer clip against the tile edge.
+
+## Tests
+
+Run `npm test` for the deterministic Vitest suite, or `npm run test:watch` while developing. The
+tests use a controlled clock and animation-frame queue to cover rapid reversals, dense press bursts,
+overlapping pointer and keyboard input, cancellation paths, the frame/time synchronization invariant,
+and the exact scale/fade keyframes. They require Node `^20.19`, `^22.12`, or `>=24`.
 
 ## Regenerating the frames
 

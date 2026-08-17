@@ -1,9 +1,13 @@
 {
   "scripts": {
-    "start": "serve"
+    "start": "serve",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "serve": "^14.2.6"
+    "jsdom": "^27.4.0",
+    "serve": "^14.2.6",
+    "vitest": "^4.1.10"
   },
   "license": "MIT"
 }
