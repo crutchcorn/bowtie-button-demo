@@ -5,6 +5,9 @@
     width="48px"
     height="48px">
     <g
+    id="squish_correction"
+    transform="translate(24 24) scale(1 2) translate(-24 -24)">
+    <g
         id="rotation"
         transform="rotate(-165 24 24) translate(24 24) scale(1.25 1.25) translate(-24 -24)">
         <path
@@ -26,5 +29,6 @@
             d="M 24 20 C 22.94 20 21.921 20.422 21.172 21.172 C 20.422 21.921 20 22.94 20 24 C 20 25.06 20.422 26.079 21.172 26.828 C 21.921 27.578 22.94 28 24 28 C 25.06 28 26.079 27.578 26.828 26.828 C 27.578 26.079 28 25.06 28 24 C 28 22.94 27.578 21.921 26.828 21.172 C 26.079 20.422 25.06 20 24 20 Z"
             fill="#c8e6ff"
             stroke-width="1"/>
+    </g>
     </g>
 </svg>

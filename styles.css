@@ -53,7 +53,9 @@
   opacity: 1;
 }
 
+/* The non-uniform scale tightens the vertical tile spacing; each frame SVG pre-stretches
+   its artwork vertically by the matching amount so the bowties stay un-squished. See assets/README.md. */
 .bowtie-button:active .bowties {
-  transform: scale(4);
+  transform: scale(4, 2);
   opacity: 0.24;
 }
