@@ -11,9 +11,9 @@ The press animation is driven entirely from `bowtie-button.js`, by one progress 
 - A paused Web Animations API effect interpolates `transform` from `scale(1, 1)` to `scale(4, 2)`
   and `opacity` from `1` to `0.24` over 300ms with `ease-in-out`. The loop seeks its `currentTime`
   explicitly instead of calling `play()` or changing `playbackRate`.
-- That same loop swaps `background-image` between `frame0.svg` … `frame9.svg` from the exact same
-  progress value: `Math.floor(progress * 9)`. So frame `n` is the intended state at **linear** time
-  `t = n / 9`, while the scale and fade are eased.
+- That same loop swaps `background-image` between `bowtie-frames.svg#frame0` … `#frame9` from the
+  exact same progress value: `Math.floor(progress * 9)`. So frame `n` is the intended state at
+  **linear** time `t = n / 9`, while the scale and fade are eased.
 
 There is no autonomously playing animation or second release loop. Pressing changes the progress
 target to `1`, releasing changes it to `0`, and a reversal first accounts for elapsed time in the old
@@ -29,9 +29,11 @@ Hover is still CSS: an outer `.bowtie-visibility` layer fades `opacity` 0 → 1,
 separate elements prevents an outside release from exposing a stale CSS transition. The paused press
 effect is `cancel()`ed only once it has unwound back to the start.
 
-The SVGs are a tile: each is a 48×48 viewBox drawn at `background-size: 8px`, repeated across the
-layer. Everything below is expressed in the SVG's 48-unit user space, where the motif is centred on
-`(24, 24)`.
+`bowtie-frames.svg` is a horizontal sprite with ten named `<view>` fragments. Each fragment selects
+a 48×48 tile, drawn at `background-size: 8px 8px` and repeated across the layer. The three paths are
+stored once in `<defs>` and reused by every frame. The stylesheet's `#frame0` reference loads the
+whole sprite, so separate hidden preload images are unnecessary. Everything below is expressed in a
+frame's 48-unit user space, where the motif is centred on `(24, 24)`.
 
 Each frame contains three nested transforms:
 
@@ -80,8 +82,9 @@ at that frame's linear time `t = n / 9`:
 
 Consequences worth knowing:
 
-- **The SVGs only look correct inside the button.** Opened on their own, the dot is a circle at
-  frame 0 and a 2:1 ellipse by frame 9. That is the point — the CSS squash makes it round again.
+- **The sprite frames only look correct inside the button.** Opened on their own, the dot is a
+  circle at frame 0 and a 2:1 ellipse by frame 9. That is the point — the CSS squash makes it round
+  again.
 - **Anything past ±24 units from centre is clipped** by the tile's viewBox, and `F` doubles how far
   the artwork reaches vertically. The tallest frame currently reaches 23.7 units, so there is very
   little headroom.
@@ -120,12 +123,14 @@ Because the bow is smaller through the middle frames, this also buys back the ve
 Run `npm test` for the deterministic Vitest suite, or `npm run test:watch` while developing. The
 tests use a controlled clock and animation-frame queue to cover rapid reversals, dense press bursts,
 overlapping pointer and keyboard input, cancellation paths, the frame/time synchronization invariant,
-and the exact scale/fade keyframes. They require Node `^20.19`, `^22.12`, or `>=24`.
+the sprite's fragment mapping and gzip budget, and the exact scale/fade keyframes. They require Node
+`^20.19`, `^22.12`, or `>=24`.
 
-## Regenerating the frames
+## Regenerating the sprite
 
-There is no build step — the frames are checked-in SVGs. If you change any of the following, the
-derived values need recomputing by hand:
+There is no build step — the sprite is a checked-in SVG. If you change any of the following, the
+derived values need recomputing by hand, then updating the corresponding frame group in
+`bowtie-frames.svg`:
 
 | Change | Recompute |
 | --- | --- |

@@ -1,9 +1,11 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ANIM_DURATION_MS,
+  BOWTIE_SPRITE_URL,
   FRAME_INTERVALS,
   PRESS_KEYFRAMES,
   PRESS_TIMING,
@@ -12,6 +14,23 @@ import {
 import { bootBowtieButton } from './script.js';
 
 const styles = readFileSync('styles.css', 'utf8');
+const html = readFileSync('index.html', 'utf8');
+const sprite = readFileSync('assets/bowtie-frames.svg', 'utf8');
+// The deleted frame files totalled this many bytes when each response was gzipped independently.
+const LEGACY_FRAME_GZIP_BYTES = 9_506;
+
+const EXPECTED_SPRITE_FRAMES = [
+  ['1', null, '0.4167', '0', '4', '#006590'],
+  ['1.0477', '-5.412119421498073', '0.444', '0.1751682975396242', '3.7921345603796697', '#0c6d97'],
+  ['1.1842', '-28.902769094037993', '0.5627', '0.6952348396452721', '2.8590526719596374', '#2e83a9'],
+  ['1.3764', '-75.4465370697838', '0.7977', '0.9207757834293515', '1.9546907958212003', '#5da1c3'],
+  ['1.5765', '-114.7137485414699', '0.9961', '0.9929626732598482', '1.5216257939763609', '#8dc0de'],
+  ['1.7461', '-138.12672167542237', '1.1143', null, '1.3228498621384226', '#b4d9f4'],
+  ['1.8689', '-151.928004265843', '1.184', null, '1.2533713043908152', '#c7e5fe'],
+  ['1.9466', '-159.85056626515922', '1.224', null, '1.25', '#c8e6ff'],
+  ['1.9876', '-163.83884108787495', '1.2442', null, '1.25', '#c8e6ff'],
+  ['2', '-165', '1.25', null, '1.25', '#c8e6ff'],
+];
 
 const cleanups = [];
 
@@ -111,7 +130,7 @@ function createHarness({ pointerCaptureThrows = false } = {}) {
   }
 
   function renderedFrame() {
-    const match = bowties.style.backgroundImage.match(/frame(\d+)\.svg/);
+    const match = bowties.style.backgroundImage.match(/#frame(\d+)/);
     return match ? Number(match[1]) : 0;
   }
 
@@ -161,8 +180,61 @@ describe('bowtie press animation', () => {
       easing: 'ease-in-out',
       fill: 'both',
     });
-    expect(styles).toMatch(
-      /\.bowties\s*\{[\s\S]*?background-image:\s*url\(['"]?\/bowtie-button-demo\/assets\/frame0\.svg/
+    expect(styles).toContain(`background-image: url('${BOWTIE_SPRITE_URL}#frame0')`);
+    expect(styles).toContain('background-size: 8px 8px');
+  });
+
+  it('packages ten unique, square views into one compact SVG sprite', () => {
+    const spriteDocument = new window.DOMParser().parseFromString(sprite, 'image/svg+xml');
+    expect(spriteDocument.querySelector('parsererror')).toBeNull();
+
+    const views = [...spriteDocument.querySelectorAll('view')];
+    expect(views.map(view => [view.id, view.getAttribute('viewBox')])).toEqual(
+      Array.from({ length: 10 }, (_, frame) => [
+        `frame${frame}`,
+        `${frame * 48} 0 48 48`,
+      ])
+    );
+
+    const ids = [...spriteDocument.querySelectorAll('[id]')].map(element => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(spriteDocument.querySelectorAll('use')).toHaveLength(20);
+
+    const frameGroups = [...spriteDocument.documentElement.children].filter(
+      element => element.tagName === 'g'
+    );
+    expect(frameGroups).toHaveLength(EXPECTED_SPRITE_FRAMES.length);
+    for (const [frame, expected] of EXPECTED_SPRITE_FRAMES.entries()) {
+      const [squish, angle, bowScale, opacity, dotScale, dotFill] = expected;
+      const frameGroup = frameGroups[frame];
+      const squishGroup = frameGroup.firstElementChild;
+      const rotationGroup = squishGroup.children[0];
+      const bow = rotationGroup.firstElementChild;
+      const dot = squishGroup.children[1];
+      const rotate = angle === null ? '' : `rotate(${angle} 24 24) `;
+
+      expect(frameGroup.getAttribute('transform')).toBe(`translate(${frame * 48} 0)`);
+      expect(squishGroup.getAttribute('transform')).toBe(
+        `translate(24 24) scale(1 ${squish}) translate(-24 -24)`
+      );
+      expect(rotationGroup.getAttribute('transform')).toBe(
+        `${rotate}translate(24 24) scale(${bowScale} ${bowScale}) translate(-24 -24)`
+      );
+      expect(bow.getAttribute('href')).toBe('#bow-shape');
+      expect(bow.getAttribute('fill-opacity')).toBe(opacity);
+      expect(dot.getAttribute('href')).toBe('#dot-shape');
+      expect(dot.getAttribute('transform')).toBe(
+        `translate(24 24) scale(${dotScale} ${dotScale}) translate(-24 -24)`
+      );
+      expect(dot.getAttribute('fill')).toBe(dotFill);
+    }
+
+    const legacyFrames = readdirSync('assets').filter(file => /^frame\d+\.svg$/.test(file));
+    expect(legacyFrames).toEqual([]);
+    expect(html).not.toMatch(/assets\/frame\d+\.svg/);
+
+    expect(gzipSync(sprite, { level: 9 }).byteLength).toBeLessThan(
+      LEGACY_FRAME_GZIP_BYTES / 4
     );
   });
 
@@ -272,6 +344,26 @@ describe('bowtie press animation', () => {
     expect(harness.renderedFrame()).toBe(9);
     expect(harness.pendingCount()).toBe(0);
     expect(harness.animation.cancel).not.toHaveBeenCalled();
+  });
+
+  it('maps every animation frame to a fragment of the same sprite', () => {
+    const harness = createHarness();
+    const frameTimes = [34, 67, 100, 134, 167, 200, 234, 267, 300];
+    const spriteUrls = [];
+
+    harness.pointerDown();
+    for (const [index, timestamp] of frameTimes.entries()) {
+      const frame = index + 1;
+      harness.flushFrame(timestamp);
+      expect(harness.renderedFrame()).toBe(frame);
+      expect(harness.bowties.style.backgroundImage).toContain(
+        `${BOWTIE_SPRITE_URL}#frame${frame}`
+      );
+      spriteUrls.push(harness.bowties.style.backgroundImage.split('#')[0]);
+    }
+
+    expect(new Set(spriteUrls).size).toBe(1);
+    expect(harness.pendingCount()).toBe(0);
   });
 
   it('snaps six fractional steps to the exact forward and reverse endpoints', () => {

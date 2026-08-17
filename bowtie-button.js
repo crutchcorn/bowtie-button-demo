@@ -1,6 +1,7 @@
 export const ANIM_DURATION_MS = 300;
 // The final frame is frame9, so there are nine intervals between frame0 and frame9.
 export const FRAME_INTERVALS = 9;
+export const BOWTIE_SPRITE_URL = '/bowtie-button-demo/assets/bowtie-frames.svg';
 const PROGRESS_EPSILON = 1e-12;
 
 export const PRESS_KEYFRAMES = Object.freeze([
@@ -52,7 +53,7 @@ export function initializeBowtieButton(button, options = {}) {
     if (frameNum === renderedFrame) return;
 
     renderedFrame = frameNum;
-    bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
+    bowties.style.backgroundImage = `url("${BOWTIE_SPRITE_URL}#frame${frameNum}")`;
   }
 
   function advance(timestamp) {
