@@ -5,7 +5,7 @@ dots; on press the dots morph into rotating bowties while the whole layer scales
 
 ## How the animation is wired together
 
-The press animation is driven entirely from `bowtie-button.js`, by one progress value and one
+The press animation is driven entirely from `script.js`, by one progress value and one
 `requestAnimationFrame` loop:
 
 - A paused Web Animations API effect interpolates `transform` from `scale(1, 1)` to `scale(4, 2)`
@@ -125,6 +125,10 @@ tests use a controlled clock and animation-frame queue to cover rapid reversals,
 overlapping pointer and keyboard input, cancellation paths, the frame/time synchronization invariant,
 the sprite's fragment mapping and gzip budget, and the exact scale/fade keyframes. They require Node
 `^20.19`, `^22.12`, or `>=24`.
+
+The behavioral tests execute the exact production `script.js` as a black box in a fresh JSDOM
+window. The shipped runtime therefore needs no exports, dependency-injection options, teardown API,
+or second JavaScript module for testability.
 
 ## Regenerating the sprite
 
