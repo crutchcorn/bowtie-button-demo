@@ -1,96 +1,160 @@
-function rafAbortable(signal, cb) {
-  if (signal.aborted) return;
-  cb();
-  requestAnimationFrame(() => rafAbortable(signal, cb));
-}
-
-function throttle(func, timeFrame) {
-  var lastTime = 0;
-  return function (...args) {
-    var now = Date.now();
-    if (now - lastTime >= timeFrame) {
-      func(...args);
-      lastTime = now;
-    }
-  };
-}
-
 const animDurationMs = 300;
-// Not including 0
-const frames = 9;
-
-function startListening(cb) {
-  const mouseDownController = new AbortController();
-  const mouseDownSignal = mouseDownController.signal;
-  const mouseDownCurrent = performance.now();
-  let mouseDownCount = { current: 0 };
-  rafAbortable(mouseDownSignal, () => {
-    const nowDiff = performance.now() - mouseDownCurrent;
-    const progress = nowDiff / animDurationMs;
-    mouseDownCount.current = Math.floor(progress * frames);
-    if (mouseDownCount.current > frames) {
-      mouseDownController.abort();
-      return;
-    }
-    const frameNum = mouseDownCount.current;
-    bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
-  });
-
-  cb(mouseDownController, mouseDownCount);
-}
-
-function stopListening(mouseDownController, mouseDownCount) {
-  mouseDownController.abort();
-  const mouseUpController = new AbortController();
-  const mouseUpSignal = mouseUpController.signal;
-  const mouseUpCurrent = performance.now();
-
-  rafAbortable(mouseUpSignal, () => {
-    const nowDiff = performance.now() - mouseUpCurrent;
-    const progress = nowDiff / animDurationMs;
-    let count = Math.floor(progress * frames) + (frames - mouseDownCount.current);
-    if (count > frames) {
-      mouseUpController.abort();
-      return;
-    }
-    if (count < 0) {
-      count = 0;
-    }
-    const frameNum = frames - count;
-
-    bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
-  });
-}
+// The final frame is frame9, so there are nine intervals between frame0 and frame9.
+const frameIntervals = 9;
 
 const el = document.querySelector('.bowtie-button');
 const bowties = el.querySelector('.bowties');
 
-el.addEventListener('pointerdown', () => {
-  startListening((mouseDownController, mouseDownCount) => {
-    document.addEventListener(
-      'pointerup',
-      () => {
-        stopListening(mouseDownController, mouseDownCount);
-      },
-      { once: true }
-    );
-  })
+// The scale is deliberately non-uniform: it tightens the vertical tile spacing, and each frame SVG
+// pre-stretches its artwork to match so the bowties stay un-squished. See assets/README.md.
+//
+// This effect never plays on its own. A single requestAnimationFrame loop seeks it and swaps the SVG
+// frame from the same progress value, so rapid direction changes cannot leave two clocks out of step.
+const press = new Animation(
+  new KeyframeEffect(
+    bowties,
+    [
+      { transform: 'scale(1, 1)', opacity: 1 },
+      { transform: 'scale(4, 2)', opacity: 0.24 },
+    ],
+    { duration: animDurationMs, easing: 'ease-in-out', fill: 'both' }
+  ),
+  document.timeline
+);
+
+let progress = 0;
+let targetProgress = 0;
+let previousTimestamp = null;
+let rafId = null;
+let renderedFrame = 0;
+
+function render() {
+  press.currentTime = progress * animDurationMs;
+
+  const frameNum = Math.min(frameIntervals, Math.floor(progress * frameIntervals));
+  if (frameNum === renderedFrame) return;
+
+  renderedFrame = frameNum;
+  bowties.style.backgroundImage = `url("/bowtie-button-demo/assets/frame${frameNum}.svg")`;
+}
+
+function advance(timestamp) {
+  if (previousTimestamp === null) return;
+
+  const elapsedProgress = Math.max(0, timestamp - previousTimestamp) / animDurationMs;
+  progress = targetProgress === 1
+    ? Math.min(targetProgress, progress + elapsedProgress)
+    : Math.max(targetProgress, progress - elapsedProgress);
+  previousTimestamp = timestamp;
+}
+
+function finishAtTarget() {
+  if (rafId !== null) cancelAnimationFrame(rafId);
+  previousTimestamp = null;
+  rafId = null;
+
+  if (targetProgress !== 0) return;
+
+  // Once the press has fully unwound, hand opacity back to the CSS hover rule and let the stylesheet
+  // own frame0 again. Canceling before this boundary is what used to expose an unsynchronised frame.
+  press.cancel();
+  bowties.style.removeProperty('background-image');
+  renderedFrame = 0;
+}
+
+function tick(timestamp) {
+  advance(timestamp);
+  render();
+
+  if (progress === targetProgress) {
+    finishAtTarget();
+    return;
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+
+function setPressed(isPressed) {
+  const nextTarget = isPressed ? 1 : 0;
+  if (nextTarget === targetProgress) return;
+
+  const timestamp = performance.now();
+  // Account for time since the last paint in the old direction before reversing. This makes a rapid
+  // release/re-press continuous even when both events land between animation frames.
+  advance(timestamp);
+  targetProgress = nextTarget;
+  previousTimestamp = timestamp;
+  render();
+
+  if (progress === targetProgress) {
+    finishAtTarget();
+    return;
+  }
+
+  if (rafId === null) rafId = requestAnimationFrame(tick);
+}
+
+const activePointers = new Set();
+const activeKeys = new Set();
+
+function syncPressedState() {
+  setPressed(activePointers.size > 0 || activeKeys.size > 0);
+}
+
+el.addEventListener('pointerdown', event => {
+  if (event.button !== 0) return;
+
+  activePointers.add(event.pointerId);
+  try {
+    el.setPointerCapture(event.pointerId);
+  } catch {
+    // The persistent document listeners below are also a fallback when capture is unavailable.
+  }
+  syncPressedState();
 });
 
-let isInKeyEvent = false;
+function releasePointer(event) {
+  if (!activePointers.delete(event.pointerId)) return;
+  syncPressedState();
+}
+
+document.addEventListener('pointerup', releasePointer, true);
+document.addEventListener('pointercancel', releasePointer, true);
+el.addEventListener('lostpointercapture', releasePointer);
+
+function isActivationKey(event) {
+  return event.key === 'Enter' || event.key === ' ';
+}
+
+function keyId(event) {
+  return event.code || event.key;
+}
 
 el.addEventListener('keydown', event => {
-  if (isInKeyEvent) return;
-  if (event.key !== 'Enter' && event.key !== " ") return;
-  isInKeyEvent = true;
-  startListening((mouseDownController, mouseDownCount) => {
-    document.addEventListener(
-      'keyup',
-      () => {
-        stopListening(mouseDownController, mouseDownCount);
-        isInKeyEvent = false;
-      },
-      { once: true }
-    );
-  });
-})
+  if (!isActivationKey(event)) return;
+
+  activeKeys.add(keyId(event));
+  syncPressedState();
+});
+
+document.addEventListener(
+  'keyup',
+  event => {
+    if (!isActivationKey(event) || !activeKeys.delete(keyId(event))) return;
+    syncPressedState();
+  },
+  true
+);
+
+function releaseAllInputs() {
+  if (activePointers.size === 0 && activeKeys.size === 0) return;
+
+  activePointers.clear();
+  activeKeys.clear();
+  syncPressedState();
+}
+
+window.addEventListener('blur', releaseAllInputs);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) releaseAllInputs();
+});

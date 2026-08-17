@@ -44,18 +44,11 @@
   background-size: 8px;
   background-image: url('/bowtie-button-demo/assets/frame0.svg');
   opacity: 0;
-  transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
+  transition: opacity 300ms ease-in-out;
   transform-origin: center;
   background-position: center;
 }
 
 .bowtie-button:hover .bowties, .bowtie-button:active .bowties {
   opacity: 1;
-}
-
-/* The non-uniform scale tightens the vertical tile spacing; each frame SVG pre-stretches
-   its artwork vertically by the matching amount so the bowties stay un-squished. See assets/README.md. */
-.bowtie-button:active .bowties {
-  transform: scale(4, 2);
-  opacity: 0.24;
 }

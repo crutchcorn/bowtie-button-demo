@@ -5,13 +5,27 @@ dots; on press the dots morph into rotating bowties while the whole layer scales
 
 ## How the animation is wired together
 
-Two things animate at once, from two different places:
+The press animation is driven entirely from `script.js`, by one progress value and one
+`requestAnimationFrame` loop:
 
-- **CSS** (`styles.css`) transitions `.bowties` from `transform: none` to `transform: scale(4, 2)`
-  and `opacity: 1` to `opacity: 0.24` over 300ms with `ease-in-out`.
-- **JS** (`script.js`) swaps `background-image` between `assets/frame0.svg` … `assets/frame9.svg` on
-  every animation frame, using `Math.floor(progress * 9)` over the same 300ms — so frame `n` is the
-  intended state at **linear** time `t = n / 9`.
+- A paused Web Animations API effect interpolates `transform` from `scale(1, 1)` to `scale(4, 2)`
+  and `opacity` from `1` to `0.24` over 300ms with `ease-in-out`. The loop seeks its `currentTime`
+  explicitly instead of calling `play()` or changing `playbackRate`.
+- That same loop swaps `background-image` between `frame0.svg` … `frame9.svg` from the exact same
+  progress value: `Math.floor(progress * 9)`. So frame `n` is the intended state at **linear** time
+  `t = n / 9`, while the scale and fade are eased.
+
+There is no autonomously playing animation or second release loop. Pressing changes the progress
+target to `1`, releasing changes it to `0`, and a reversal first accounts for elapsed time in the old
+direction before changing course. Rapid presses therefore remain continuous, and stale callbacks
+cannot keep swapping SVGs after the scale and fade have unwound.
+
+Pointer IDs and activation keys are tracked separately, so one input source cannot release another.
+Pointer cancellation, lost capture, window blur, and a hidden document all release their active
+inputs instead of leaving the button stuck down.
+
+Hover is still CSS: `.bowties` fades `opacity` 0 → 1, and the paused effect is `cancel()`ed only once
+it has unwound back to the start so that rule takes over again.
 
 The SVGs are a tile: each is a 48×48 viewBox drawn at `background-size: 8px`, repeated across the
 layer. Everything below is expressed in the SVG's 48-unit user space, where the motif is centred on
@@ -35,7 +49,7 @@ derived — the rest of this document explains how and why.
 
 ## `squish_correction` — the `F` factor
 
-The CSS scale is deliberately non-uniform: `scale(4, 2)` instead of `scale(4)`. Because the pattern
+The press scale is deliberately non-uniform: `scale(4, 2)` instead of `scale(4)`. Because the pattern
 is a *background image*, the tile pitch and the artwork size are locked together, so squashing the
 vertical scale is the only way to pack the rows closer than the tile allows. The cost is that the
 bowties get squashed with it — 4× wide but only 2× tall.
@@ -45,16 +59,17 @@ to squash it. Applied **outside** the rotation, the two scales compose into a un
 
 $$\text{scale}(4, 2) \cdot \text{scale}(1, 2) = \text{scale}(4, 4)$$
 
-The correction can't be a constant, though: the CSS scale ramps up over the transition, and at rest
+The correction can't be a constant, though: the scale ramps up over the press, and at rest
 (hover, frame 0) there is no scale at all — a constant pre-stretch would show up as visibly oval
 dots. So `F` tracks the distortion frame by frame.
 
-At eased progress `e`, the CSS transform is `scale(1 + 3e, 1 + e)`, so the aspect error to undo is:
+At eased progress `e`, the animation's transform is `scale(1 + 3e, 1 + e)`, so the aspect error to
+undo is:
 
 $$F = \frac{1 + 3e}{1 + e}$$
 
-`e` is `cubic-bezier(0.42, 0, 0.58, 1)` — the `ease-in-out` used by the CSS transition — evaluated at
-that frame's linear time `t = n / 9`:
+`e` is `cubic-bezier(0.42, 0, 0.58, 1)` — the `ease-in-out` the animation is created with — evaluated
+at that frame's linear time `t = n / 9`:
 
 | frame | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -68,7 +83,7 @@ Consequences worth knowing:
 - **Anything past ±24 units from centre is clipped** by the tile's viewBox, and `F` doubles how far
   the artwork reaches vertically. The tallest frame currently reaches 23.7 units, so there is very
   little headroom.
-- **`F` and the CSS scale are coupled.** Changing `scale(4, 2)` means recomputing every `F`.
+- **`F` and the press scale are coupled.** Changing `scale(4, 2)` means recomputing every `F`.
 
 ## `rotation` — the `B` factor
 
@@ -105,8 +120,8 @@ derived values need recomputing by hand:
 
 | Change | Recompute |
 | --- | --- |
-| the CSS `scale(4, 2)` | every `F` |
-| the CSS transition timing function or duration | every `F` |
+| the `scale(4, 2)` keyframe | every `F` |
+| the animation's easing or duration | every `F` |
 | the number of frames | every `F` (the `t = n / 9` mapping) and every `B` |
 | the rotation keyframes | every `B` |
 | the bow path or its final `1.25` | every `B`, and re-check the ±24 unit clipping budget |
